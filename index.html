@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin</title>
+<link rel="stylesheet" href="css/build/pure.css">
+<!--[if lte IE 8]>
+<link rel="stylesheet" href="css/build/grids-responsive-old-ie.css">
+<![endif]-->
+<!--[if gt IE 8]><!-->
+<link rel="stylesheet" href="css/build/grids-responsive.css">
+<!--<![endif]-->
+<link rel="stylesheet" href="css/skin.css">
+
+<script src="js/mootools-core-1.5.1-full-nocompat.js"></script>
+<script src="js/mootools-more-1.5.1.js"></script>
+<script type="application/javascript">
+var menu_items = [
+    'items',
+    'tree'
+    /*,
+     'form'*/
+];
+var PageMenu = new Class({
+    Implements: [
+        Events,
+        Options
+    ],
+    initialize: function (el, items)
+    {
+        var wp = new Element('div', {class: 'pure-g column'}).inject(el);
+        this.list = [];
+        for (var i = 0; i < items.length; i++)
+        {
+            var e = new Element('div', {class: 'pure-u-1-2 column'}).inject(wp);
+            var ce = new Element('h2', {'html': menu_items[i]}).inject(e);
+            this.list[menu_items[i]] = e;
+        }
+    }
+});
+var items = {
+    1 : {title: 'Lorem ipsum'},
+    2 : {title: 'Lorem ipsum'},
+    3 : {title: 'Lorem ipsum'},
+    4 : {title: 'Lorem ipsum'},
+    5 : {title: 'Lorem ipsum'},
+    6 : {title: 'Lorem ipsum'},
+    7 : {title: 'Lorem ipsum'},
+    8 : {title: 'Lorem ipsum'},
+    9 : {title: 'Lorem ipsum'},
+    10: {title: 'Lorem ipsum'}
+};
+var tree = [
+    {
+        i_id  : 1,
+        childs: [
+            {i_id: 2, childs: [
+                {
+                    i_id  : 5,
+                    childs: [
+                        {
+                            i_id  : 6,
+                            childs: []
+                        },
+                        {
+                            i_id  : 7,
+                            childs: []
+                        }
+                    ]
+                }
+            ]},
+            {i_id: 3, childs: [
+                {
+                    i_id  : 4,
+                    childs: []
+                }
+            ]},
+        ]
+    },
+    {
+        i_id  : 10,
+        childs: []
+    }
+];
+var ItemEditor = new Class({
+    Implements: [
+        Events,
+        Options
+    ],
+    initialize: function ()
+    {
+    }
+});
+/*Single item element*/
+var ItemElement = new Class({
+    Implements     : [
+        Events,
+        Options
+    ],
+    initialize     : function (item, wh, options)
+    {
+        this.setOptions(options);
+        var w = this.options.wrapper;
+        var el = new Element('li').inject(w, wh);
+        el.addEvent('itemdroped', this.add_drop.bind(this));
+        this.li = el;
+        this.el = new Element('div', {
+            events: {
+                mousedown: this.prepare_drag.bind(this)
+            },
+            html  : '<h2>' + item.id + ': ' + item.title + '</h2>',
+            class : 'item_element'}).inject(el);
+        this.item = item;
+        this.drop_pos = null;
+        this.drop_in = null;
+        this.drop = null;
+    },
+    get_li         : function ()
+    {
+        return this.li;
+    },
+    prepare_drag   : function (e)
+    {
+        e.stop();
+        this.fireEvent('beforedrag', [
+            e,
+            this.item.id
+        ]);
+        this.start_drag(e);
+    },
+    start_drag     : function (e, droppables)
+    {
+        var el = this.el;
+        var clone = this.el.clone().setStyles(el.getStyles()).setStyles(el.getCoordinates()).setStyles({
+            position          : 'absolute',
+            opacity           : 0.7,
+            'background-color': '#aaa',
+            'z-index'         : 2
+        }).inject(document.body);
+        var drag = new Drag.Move(clone, {
+            droppables: droppables,
+            onDrop    : this.end_drag.bind(this),
+            onEnter   : this.droppable_enter.bind(this),
+            onLeave   : this.droppable_leave.bind(this),
+            onDrag    : this.draged.bind(this)
+
+        });
+        this.drag_size = clone.getDimensions();
+        drag.start(e);
+        this.fireEvent('dragstarted', this.item.id);
+    },
+    draged         : function (drag)
+    {
+        var drop_pos = this.drop_pos;
+        if (drop_pos !== null)
+        {
+            var drag_pos = drag.getPosition();
+            var drag_size = this.drag_size;
+            var drop = this.drop_el;
+            if (drag_pos.y <= (drop_pos.y + (drag_size.y / 2)))
+            {
+                this.drop_in = 'before';
+                drop.removeClass('hl_bottom');
+                drop.addClass('hl_top');
+            }
+            else
+            {
+                this.drop_in = 'after';
+                drop.removeClass('hl_top');
+                drop.addClass('hl_bottom')
+            }
+        }
+    },
+    end_drag       : function (drag, drop)
+    {
+        drag.destroy();
+        if (drop)
+        {
+            drop.removeClass('hl');
+            drop.fireEvent('itemdroped', [
+                this.item.id,
+                this.drop_in
+            ]);
+            this.droppable_leave(null, drop);
+        }
+        this.drag_size = null;
+        this.fireEvent('dragended');
+    },
+    droppable_enter: function (drag, drop)
+    {
+        this.drop_pos = drop.getPosition();
+        this.drop_el = drop;
+    },
+    droppable_leave: function (drag, drop)
+    {
+        drop.removeClass('hl_top');
+        drop.removeClass('hl_bottom');
+        this.drop_pos = null;
+        this.drop_el = null;
+        this.drop_in = null;
+    },
+    add_drop       : function (i_id, drop_in)
+    {
+        this.fireEvent('itemdroped', [
+            this.options.el_i,
+            i_id,
+            drop_in
+        ]);
+    }
+});
+/*item list class - it shows all items in repository*/
+var ItemList = new Class({
+    Implements      : [
+        Events,
+        Options
+    ],
+    initialize      : function (w, options)
+    {
+        this.setOptions(options);
+        var el = new Element('div', {class: 'item_list'}).inject(w);
+        this.w = new Element('ul').inject(el);
+        this.els = {};
+    },
+    fill            : function (items)
+    {
+        var w = this.w;
+        var els = {};
+        for (var i_id in items)
+        {
+            els[i_id] = new ItemElement({id: i_id, title: items[i_id].title}, 'bottom', {
+                wrapper      : w,
+                onDragstarted: this.drag_started.bind(this),
+                onDragended  : this.drag_ended.bind(this),
+                onBeforedrag : this.before_drag.bind(this)
+            });
+        }
+        this.els = els;
+    },
+    drag_started    : function (i_id)
+    {
+        this.fireEvent('dragstarted', i_id);
+    },
+    drag_ended      : function (i_id)
+    {
+        this.fireEvent('dragended', i_id);
+    },
+    before_drag     : function (e, i_id)
+    {
+        this.fireEvent('beforedrag', [
+            e,
+            i_id
+        ]);
+    },
+    droppables_ready: function (e, i_id, droppables)
+    {
+        this.els[i_id].start_drag(e, droppables);
+    }
+});
+/*item tree class*/
+var ItemTree = new Class({
+    Implements        : [
+        Events,
+        Options
+    ],
+    initialize        : function (w, options)
+    {
+        this.setOptions(options);
+        this.wrapper = w;
+        var el = new Element('div', {class: 'item_list'}).inject(w);
+        this.w = this.make_ul(el);
+        this.els = [];
+        this.item_els = [];
+        this.item_map = [];
+        this.tree = {};
+        this.parents = {};
+        this.childs = {};
+        this.i_ids = [];
+    },
+    make_ul           : function (w)
+    {
+        var el = new Element('ul').inject(w);
+        return el;
+    },
+    prepare_droppables: function (e, i_id)
+    {
+        this.fireEvent('droppablesready', [
+            e,
+            i_id,
+            this.els
+        ]);
+    },
+    set_items         : function (items)
+    {
+        this.items = items;
+    },
+    fill              : function (t)
+    {
+        this.tree = t;
+        this.fill_items(t, this.w, null);
+        console.log(this.parents);
+        console.log(this.childs);
+        this.create_tree();
+    },
+    fill_items        : function (t, w, parent)
+    {
+        var l = t.length;
+        var items = this.items;
+        var arr = [];
+        for (var i = 0; i < l; i++)
+        {
+            var i_id = t[i].i_id;
+            var item = t[i];
+            var wp = this.create_item(i_id, items, w);
+            var ll = this.els.length - 1;
+            arr.include(ll);
+            var p_l = this.parents.length;
+            if (parent !== null)
+            {
+                this.childs[ll] = parent;
+            }
+            var w_c = this.make_ul(wp);
+            this.parents[ll] = this.fill_items(item.childs, w_c, ll);
+        }
+        return arr;
+    },
+    create_item       : function (i_id, items, w, wh)
+    {
+        if (!wh)
+        {
+            wh = 'bottom';
+        }
+        var i = this.els.length;
+        var itm = new ItemElement({id: i_id, title: items[i_id].title}, wh, {
+            wrapper     : w,
+            onItemdroped: this.add_to_tree.bind(this),
+            el_i        : i
+        });
+        var wp = itm.get_li();
+        this.els.include(wp);
+        this.item_els.include(itm);
+        this.i_ids.include(i_id);
+        this.item_map[i] = i_id;
+        return wp;
+    },
+    add_to_tree       : function (el_i, i_id, drop_in)
+    {
+        var el_id = this.item_map[el_i];
+        var items = this.items;
+        var w = this.els[el_i];
+        this.create_item(i_id, items, w, drop_in);
+    },
+    create_tree       : function ()
+    {
+        var tree = [];
+        var parents = this.parents;
+        var childs = this.childs;
+        var i_ids = this.i_ids;
+        for (pid in parents)
+        {
+            if (!childs[pid])
+            {
+                var i_id = i_ids[pid];
+                var arr = this.get_childs(pid);
+                tree.include({i_id: i_id, childs: arr});
+            }
+        }
+        console.log(JSON.encode(tree));
+    },
+    get_childs        : function (pid)
+    {
+        var parents = this.parents;
+        var i_ids = this.i_ids;
+        var arr = [];
+        var childs = parents[pid];
+        var l = childs.length;
+        for (var i = 0; i < l; i++)
+        {
+            var o = {};
+            var o_i = childs[i];
+            o['i_id'] = i_ids[o_i];
+            o['childs'] = this.get_childs(o_i);
+            arr.include(o);
+        }
+        return arr;
+    }
+
+});
+/* main app*/
+var App = {
+    init: function ()
+    {
+        var app_el = $('main');
+        var page = new PageMenu(app_el, menu_items);
+        var item_tree = new ItemTree(page.list['tree']);
+        var item_list = new ItemList(page.list['items'], {
+            onBeforedrag: item_tree.prepare_droppables.bind(item_tree)
+        });
+        item_tree.addEvent('droppablesready', item_list.droppables_ready.bind(item_list));
+        item_tree.set_items(items);
+        item_list.fill(items);
+        item_tree.fill(tree);
+        this.item_list = item_list;
+        this.item_tree = item_tree;
+        this.page = page;
+    }
+};
+window.addEvent('domready', App.init.bind(App));
+</script>
+</head>
+<body>
+<div id="main">
+
+</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+body, html {
+    height: 100%;
+    min-height: 100%;
+    position: relative;
+}
+*
+{
+    box-sizing: border-box;
+}
+h1,h2,h3,h4,h5,h6
+{
+    margin:0px;
+    padding: 0px;
+}
+#main, div.column {
+    height: 100%;
+    min-height: 100%;
+    position: relative;
+}
+
+.item_list ul {
+    border: none;
+    list-style: none;
+    margin: 1em 0em 1em 1em;
+    padding: 0px;
+}
+
+.item_list ul li {
+    position: relative;
+    z-index: 0;
+}
+.item_list ul li.hl_top
+{
+    border-top:2px solid #0f0;
+}
+.item_list ul li.hl_bottom
+{
+    border-bottom:2px solid #0f0;
+}
+div.item_element
+{
+    background-color: #fff;
+    border: 1px solid #aaa;
+    padding: 0.5em;
+    margin: 0.5em 0em;
+}
